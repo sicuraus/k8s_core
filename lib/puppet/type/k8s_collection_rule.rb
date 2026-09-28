@@ -20,6 +20,13 @@ Puppet::Type.newtype(:k8s_collection_rule) do
       reported as a violation (a noop `k8s_resource` absent).
     * `action => delete`: each matching object is deleted. Objects declared
       by a `k8s_resource` in this catalog are never deleted.
+    * `action => create`: a `k8s_resource` built from `template` for each
+      object, e.g. a default-deny NetworkPolicy in every Namespace. In
+      `template`, `%{name}` and `%{namespace}` stand for the matched object's
+      name and namespace. The generated objects carry the run's `managed_by`
+      scope, so they enter its prune inventory: switching the rule off (or
+      excluding a namespace) prunes them. With `action => report`, a
+      `template` reports missing objects without creating them.
 
     Children inherit the rule's tags, so a report ties every change back to
     the rule (and, with the Compliance Engine, to its check and controls).
@@ -113,8 +120,16 @@ Puppet::Type.newtype(:k8s_collection_rule) do
 
   newparam(:action) do
     desc '`report`, `patch` or `delete`. Default `report`.'
-    newvalues(:report, :patch, :delete)
+    newvalues(:report, :patch, :delete, :create)
     defaultto :report
+  end
+
+  newparam(:template) do
+    desc 'For `create` (and `report`): the object to ensure for each object in scope, with `%{name}` and `%{namespace}` placeholders.'
+    validate do |value|
+      raise ArgumentError, 'template must be a Hash with apiVersion, kind and metadata.name' unless value.is_a?(Hash) && value['apiVersion'] && value['kind'] && value.dig('metadata', 'name')
+    end
+    munge { |value| PuppetX::K8sCore::Object.plain(value) }
   end
 
   newparam(:patch) do
@@ -136,6 +151,8 @@ Puppet::Type.newtype(:k8s_collection_rule) do
   validate do
     raise ArgumentError, 'api_version and kind are required' unless self[:api_version] && self[:kind]
     raise ArgumentError, 'action patch requires patch' if self[:action] == :patch && !self[:patch]
+    raise ArgumentError, 'action create requires template' if self[:action] == :create && !self[:template]
+    raise ArgumentError, 'give patch or template, not both' if self[:patch] && self[:template]
   end
 
   # Objects of this kind declared in the catalog (e.g. a Namespace created in
@@ -194,7 +211,39 @@ Puppet::Type.newtype(:k8s_collection_rule) do
     objs.map { |o| child_for(o, declared) }.compact
   end
 
+  # Replaces %{name} and %{namespace} in every string of the template.
+  def render(template, meta)
+    case template
+    when Hash then template.to_h { |k, v| [render(k, meta), render(v, meta)] }
+    when Array then template.map { |v| render(v, meta) }
+    when String then template.gsub('%{name}', meta['name'].to_s).gsub('%{namespace}', meta['namespace'].to_s)
+    else template
+    end
+  end
+
+  def template_child(obj, declared)
+    doc = render(self[:template], obj['metadata'] || {})
+    md = doc['metadata']
+    key = PuppetX::K8sCore::Object.key(doc['apiVersion'], doc['kind'], md['namespace'], md['name'])
+    return nil if declared[key] # the catalog manages it already
+
+    extra_md = md.reject { |k, _| %w[name namespace].include?(k) }
+    content = doc.reject { |k, _| %w[apiVersion kind metadata].include?(k) }
+    content['metadata'] = extra_md unless extra_md.empty?
+    opts = {
+      title: "#{self[:name]}: #{PuppetX::K8sCore::Object.format_title(doc['kind'], md['namespace'], md['name'])}",
+      api_version: doc['apiVersion'], kind: doc['kind'], resource_name: md['name'],
+      content: content, drift_managers: self[:drift_managers],
+    }
+    opts[:namespace] = md['namespace'] unless md['namespace'].to_s.empty?
+    opts[:noop] = true if self[:noop] || self[:action] == :report
+    opts[:ensure] = :absent if self[:release]
+    Puppet::Type.type(:k8s_resource).new(opts)
+  end
+
   def child_for(obj, declared)
+    return template_child(obj, declared) if self[:template]
+
     md = obj['metadata'] || {}
     ref = PuppetX::K8sCore::Object.format_title(self[:kind], md['namespace'], md['name'])
     common = {

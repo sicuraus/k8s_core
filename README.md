@@ -166,6 +166,12 @@ resource, tagged with the rule's tags.
   reported as a violation.
 - `action => delete`: each matching object is deleted, except objects this
   catalog declares.
+- `action => create` with a `template`: builds a `k8s_resource` per object,
+  with `%{name}` and `%{namespace}` substituted. Use it for "a default-deny
+  NetworkPolicy in every Namespace". The generated objects join the run's
+  prune inventory, so turning the rule off, or excluding a namespace, prunes
+  them. `action => report` with a `template` reports the missing objects
+  instead of creating them.
 - `release => true`: releases the fields the rule's patches own. Use it when a
   control is switched off; removing the rule from the catalog leaves its
   fields in place.

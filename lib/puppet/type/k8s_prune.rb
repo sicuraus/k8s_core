@@ -84,6 +84,11 @@ Puppet::Type.newtype(:k8s_prune) do
     end
   end
 
+  # Runs after collection rules, whose generated objects join the inventory.
+  autorequire(:k8s_collection_rule) do
+    catalog.resources.grep(Puppet::Type.type(:k8s_collection_rule))
+  end
+
   # Runs after every resource of its scope.
   autorequire(:k8s_resource) do
     catalog.resources.select do |r|

@@ -125,6 +125,13 @@ object appears as its own resource in the report:
   reported as a violation (a noop `k8s_resource` absent).
 * `action => delete`: each matching object is deleted. Objects declared
   by a `k8s_resource` in this catalog are never deleted.
+* `action => create`: a `k8s_resource` built from `template` for each
+  object, e.g. a default-deny NetworkPolicy in every Namespace. In
+  `template`, `%{name}` and `%{namespace}` stand for the matched object's
+  name and namespace. The generated objects carry the run's `managed_by`
+  scope, so they enter its prune inventory: switching the rule off (or
+  excluding a namespace) prunes them. With `action => report`, a
+  `template` reports missing objects without creating them.
 
 Children inherit the rule's tags, so a report ties every change back to
 the rule (and, with the Compliance Engine, to its check and controls).
@@ -180,10 +187,11 @@ The following parameters are available in the `k8s_collection_rule` type.
 * [`namespace`](#-k8s_collection_rule--namespace)
 * [`patch`](#-k8s_collection_rule--patch)
 * [`release`](#-k8s_collection_rule--release)
+* [`template`](#-k8s_collection_rule--template)
 
 ##### <a name="-k8s_collection_rule--action"></a>`action`
 
-Valid values: `report`, `patch`, `delete`
+Valid values: `report`, `patch`, `delete`, `create`
 
 `report`, `patch` or `delete`. Default `report`.
 
@@ -257,6 +265,11 @@ rule this way when a control is switched off: removing it from the
 catalog leaves its fields in place. Default false.
 
 Default value: `false`
+
+##### <a name="-k8s_collection_rule--template"></a>`template`
+
+For `create` (and `report`): the object to ensure for each object in scope, with `%{name}` and `%{namespace}`
+placeholders.
 
 ### <a name="k8s_patch"></a>`k8s_patch`
 

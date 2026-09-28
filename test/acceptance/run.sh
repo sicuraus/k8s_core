@@ -251,12 +251,15 @@ if want compliance; then
   expect "missing target is not applicable" log_has 'not-there does not exist; not applicable'
   expect "anonymous cluster-admin binding is reported" log_has 'ClusterRoleBinding/k8s-core-test-anon.*\(noop\)|k8s-core-test-anon.*noop'
   expect "report-only rule deleted nothing" jget clusterrolebinding k8s-core-test-anon -o name
+  expect "every labelled namespace gets a default-deny policy" jget -n t-comp-b networkpolicy default-deny-ingress -o name
+  expect "but not the exempt one" bash -c "! $K -n t-comp-exempt get networkpolicy default-deny-ingress >/dev/null 2>&1"
   expect "patch field owned by sicura" bash -c "$K get ns t-comp-a --show-managed-fields -o json | jq -e '.metadata.managedFields[] | select(.manager==\"sicura\")' >/dev/null"
   expect "second run makes no changes" papply platform compliance.pp 0
 
   $K create ns t-comp-new --dry-run=client -o yaml | $K apply -f - >/dev/null
   $K label ns t-comp-new compliance-test=yes --overwrite >/dev/null
   expect "a namespace created since is covered" papply platform compliance.pp 2
+  expect "new namespace gets its policy" jget -n t-comp-new networkpolicy default-deny-ingress -o name
   expect "new namespace labelled" test "$(jget ns t-comp-new -o jsonpath='{.metadata.labels.pod-security\.kubernetes\.io/warn}')" == restricted
   $K label ns t-comp-a pod-security.kubernetes.io/warn=privileged --overwrite >/dev/null
   expect "a kubectl edit of a control is corrected" papply platform compliance.pp 2
@@ -266,6 +269,7 @@ if want compliance; then
   expect "PSS label removed" test -z "$(jget ns t-comp-a -o jsonpath='{.metadata.labels.pod-security\.kubernetes\.io/warn}')"
   expect "patched label removed" test -z "$(jget ns kube-public -o jsonpath='{.metadata.labels.example\.com/audited}')"
   expect "namespace itself untouched" jget ns t-comp-a -o name
+  expect "released policies are removed" bash -c "! $K -n t-comp-a get networkpolicy default-deny-ingress >/dev/null 2>&1"
   $K delete clusterrolebinding k8s-core-test-anon >/dev/null
 fi
 

@@ -20,6 +20,21 @@ k8s_collection_rule { 'pss-warn':
   tag            => ['k8s_restrict_pod_privileges'],
 }
 
+k8s_collection_rule { 'default-deny':
+  release        => $rule_ensure == 'absent',
+  api_version    => 'v1',
+  kind           => 'Namespace',
+  label_selector => 'compliance-test=yes',
+  exclude        => ['t-comp-exempt'],
+  action         => 'create',
+  template       => {
+    'apiVersion' => 'networking.k8s.io/v1',
+    'kind'       => 'NetworkPolicy',
+    'metadata'   => { 'name' => 'default-deny-ingress', 'namespace' => '%{name}' },
+    'spec'       => { 'podSelector' => {}, 'policyTypes' => ['Ingress'] },
+  },
+}
+
 k8s_patch { 'kube-public label':
   ensure        => $rule_ensure,
   target        => 'Namespace/kube-public',
