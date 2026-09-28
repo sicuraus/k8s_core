@@ -68,6 +68,7 @@ describe Puppet::Type.type(:k8s_collection_rule) do
     it 'reports missing objects without creating them' do
       kids = rule(action: 'report', patch: nil, template: template).eval_generate
       expect(kids.map { |k| k[:noop] }.uniq).to eq([true])
+      expect(kids.map { |k| k[:inventory] }.uniq).to eq([false])
     end
 
     it 'requires a template' do

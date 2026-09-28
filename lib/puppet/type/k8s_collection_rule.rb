@@ -237,6 +237,8 @@ Puppet::Type.newtype(:k8s_collection_rule) do
     }
     opts[:namespace] = md['namespace'] unless md['namespace'].to_s.empty?
     opts[:noop] = true if self[:noop] || self[:action] == :report
+    # A report of a missing object must not keep alive one an earlier run created.
+    opts[:inventory] = false if self[:action] == :report
     opts[:ensure] = :absent if self[:release]
     Puppet::Type.type(:k8s_resource).new(opts)
   end

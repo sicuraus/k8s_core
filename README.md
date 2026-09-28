@@ -171,7 +171,9 @@ resource, tagged with the rule's tags.
   NetworkPolicy in every Namespace". The generated objects join the run's
   prune inventory, so turning the rule off, or excluding a namespace, prunes
   them. `action => report` with a `template` reports the missing objects
-  instead of creating them.
+  instead of creating them. Those report-only children have `inventory =>
+  false`, so they don't keep alive objects an earlier `create` run made. The
+  objects are pruned once the rule falls back to reporting.
 - `release => true`: releases the fields the rule's patches own. Use it when a
   control is switched off; removing the rule from the catalog leaves its
   fields in place.

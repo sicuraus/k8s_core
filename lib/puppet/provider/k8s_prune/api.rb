@@ -35,7 +35,7 @@ Puppet::Type.type(:k8s_prune).provide(:api) do
   def current
     @current ||= begin
       declared = resource.catalog.resources.select do |r|
-        r.is_a?(Puppet::Type.type(:k8s_resource)) && r[:managed_by] == scope && r[:ensure] != :absent
+        r.is_a?(Puppet::Type.type(:k8s_resource)) && r[:managed_by] == scope && r[:ensure] != :absent && r[:inventory]
       end
       declared.map do |r|
         { 'apiVersion' => r[:api_version], 'kind' => r[:kind], 'namespace' => r[:namespace],

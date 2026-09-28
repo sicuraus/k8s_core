@@ -150,6 +150,16 @@ Puppet::Type.newtype(:k8s_resource) do
     end
   end
 
+  newparam(:inventory, boolean: true, parent: Puppet::Parameter::Boolean) do
+    desc <<-DESC
+      Whether `k8s_prune` counts this resource as declared. With `false` the
+      object is neither recorded in the inventory nor protected by it: a
+      report-only (noop) resource does not keep alive an object a previous run
+      created. Default true.
+    DESC
+    defaultto true
+  end
+
   newparam(:wait, boolean: true, parent: Puppet::Parameter::Boolean) do
     desc <<-DESC
       Wait until the object is ready before dependents run: Deployments,

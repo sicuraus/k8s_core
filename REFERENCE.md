@@ -522,6 +522,7 @@ The following parameters are available in the `k8s_resource` type.
 * [`drift_managers`](#-k8s_resource--drift_managers)
 * [`field_manager`](#-k8s_resource--field_manager)
 * [`force_conflicts`](#-k8s_resource--force_conflicts)
+* [`inventory`](#-k8s_resource--inventory)
 * [`kind`](#-k8s_resource--kind)
 * [`managed_by`](#-k8s_resource--managed_by)
 * [`name`](#-k8s_resource--name)
@@ -554,6 +555,17 @@ Valid values: `true`, `false`, `yes`, `no`
 Take ownership of fields another field manager owns. Off by default.
 
 Default value: `false`
+
+##### <a name="-k8s_resource--inventory"></a>`inventory`
+
+Valid values: `true`, `false`, `yes`, `no`
+
+Whether `k8s_prune` counts this resource as declared. With `false` the
+object is neither recorded in the inventory nor protected by it: a
+report-only (noop) resource does not keep alive an object a previous run
+created. Default true.
+
+Default value: `true`
 
 ##### <a name="-k8s_resource--kind"></a>`kind`
 

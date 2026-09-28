@@ -80,6 +80,14 @@ describe Puppet::Type.type(:k8s_prune).provider(:api) do
     expect(provider.plan[:record].map { |e| e['name'] }).to eq(['drop'])
   end
 
+  it 'does not let inventory => false resources protect objects' do
+    catalog.add_resource(Puppet::Type.type(:k8s_resource).new(title: 'ConfigMap/app/report', api_version: 'v1',
+                                                              managed_by: 'scope', inventory: false, noop: true))
+    fake.put(cm('report'))
+    inventory(entry('ConfigMap', 'app', 'report'))
+    expect(provider.plan[:delete].map { |e| e['name'] }).to eq(['report'])
+  end
+
   it 'deletes custom resources before built-in kinds' do
     order = [entry('ConfigMap', 'app', 'b'), entry('Widget', 'app', 'a', 'example.com/v1')].sort_by { |e| provider.rank(e) }
     expect(order.map { |e| e['kind'] }).to eq(%w[Widget ConfigMap])
