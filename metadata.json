@@ -1,0 +1,26 @@
+{
+  "name": "sicura-k8s_core",
+  "version": "0.1.0",
+  "author": "Sicura",
+  "summary": "Manage Kubernetes objects with server-side apply: types, a Resource API transport, facts and pruning.",
+  "license": "Apache-2.0",
+  "source": "https://github.com/sicuraus/k8s_core",
+  "project_page": "https://github.com/sicuraus/k8s_core",
+  "issues_url": "https://github.com/sicuraus/k8s_core/issues",
+  "dependencies": [],
+  "operatingsystem_support": [
+    { "operatingsystem": "RedHat" },
+    { "operatingsystem": "CentOS" },
+    { "operatingsystem": "Rocky" },
+    { "operatingsystem": "AlmaLinux" },
+    { "operatingsystem": "OracleLinux" },
+    { "operatingsystem": "Fedora" },
+    { "operatingsystem": "Debian" },
+    { "operatingsystem": "Ubuntu" },
+    { "operatingsystem": "SLES" }
+  ],
+  "requirements": [
+    { "name": "openvox", "version_requirement": ">= 8.0.0 < 10.0.0" }
+  ],
+  "tags": ["kubernetes", "k8s", "gitops", "server-side-apply", "transport", "device"]
+}

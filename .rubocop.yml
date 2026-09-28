@@ -1,0 +1,7 @@
+---
+inherit_gem:
+  voxpupuli-test: rubocop.yml
+AllCops:
+  Exclude:
+    - vendor/**/*
+    - spec/fixtures/**/*

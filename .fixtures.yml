@@ -1,0 +1,4 @@
+---
+fixtures:
+  symlinks:
+    k8s_core: "#{source_dir}"

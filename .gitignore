@@ -1,0 +1,10 @@
+/.bundle/
+/vendor/
+/Gemfile.lock
+/pkg/
+/spec/fixtures/modules/
+/spec/fixtures/manifests/
+/.tmp/
+/coverage/
+/doc/
+/.yardoc/
