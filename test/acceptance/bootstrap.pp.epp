@@ -1,0 +1,60 @@
+<%- | String $image, String $pull_policy | -%>
+# Applied from outside the cluster through the k8s transport (puppet device):
+# deploys the in-cluster runners that the scenarios exec into.
+$ns = 'k8s-core-test'
+
+k8s_resource { "Namespace/${ns}": api_version => 'v1', managed_by => 'bootstrap' }
+k8s_resource { 'Namespace/tenant-a': api_version => 'v1', managed_by => 'bootstrap' }
+# Where inventories (and a reconciler) live.
+k8s_resource { 'Namespace/openvox-system': api_version => 'v1', managed_by => 'bootstrap' }
+
+# The platform runner: cluster-admin, like a platform reconciliation.
+k8s_resource { "ServiceAccount/${ns}/openvox-platform": api_version => 'v1', managed_by => 'bootstrap' }
+k8s_resource { 'ClusterRoleBinding/k8s-core-test-platform':
+  api_version => 'rbac.authorization.k8s.io/v1',
+  managed_by  => 'bootstrap',
+  content     => {
+    'roleRef'  => { 'apiGroup' => 'rbac.authorization.k8s.io', 'kind' => 'ClusterRole', 'name' => 'cluster-admin' },
+    'subjects' => [{ 'kind' => 'ServiceAccount', 'name' => 'openvox-platform', 'namespace' => $ns }],
+  },
+}
+
+# The tenant runner: may only manage its own namespace.
+k8s_resource { "ServiceAccount/${ns}/openvox-tenant-a": api_version => 'v1', managed_by => 'bootstrap' }
+k8s_resource { 'RoleBinding/tenant-a/openvox-tenant-a':
+  api_version => 'rbac.authorization.k8s.io/v1',
+  managed_by  => 'bootstrap',
+  content     => {
+    'roleRef'  => { 'apiGroup' => 'rbac.authorization.k8s.io', 'kind' => 'ClusterRole', 'name' => 'admin' },
+    'subjects' => [{ 'kind' => 'ServiceAccount', 'name' => 'openvox-tenant-a', 'namespace' => $ns }],
+  },
+}
+
+['platform', 'tenant-a'].each |$who| {
+  k8s_resource { "Deployment/${ns}/runner-${who}":
+    api_version  => 'apps/v1',
+    managed_by   => 'bootstrap',
+    wait         => true,
+    wait_timeout => 240,
+    require      => K8s_resource["ServiceAccount/${ns}/openvox-${who}"],
+    content      => {
+      'spec' => {
+        'replicas' => 1,
+        'selector' => { 'matchLabels' => { 'app' => "runner-${who}" } },
+        'template' => {
+          'metadata' => { 'labels' => { 'app' => "runner-${who}" } },
+          'spec'     => {
+            'serviceAccountName'            => "openvox-${who}",
+            'terminationGracePeriodSeconds' => 1,
+            'containers'                    => [{
+              'name'            => 'agent',
+              'image'           => '<%= $image %>',
+              'imagePullPolicy' => '<%= $pull_policy %>',
+              'command'         => ['sleep', 'infinity'],
+            }],
+          },
+        },
+      },
+    },
+  }
+}

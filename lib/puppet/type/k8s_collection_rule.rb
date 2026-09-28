@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'puppet/parameter/boolean'
 require_relative '../../puppet_x/k8s_core'
 
 Puppet::Type.newtype(:k8s_collection_rule) do
@@ -53,6 +54,16 @@ Puppet::Type.newtype(:k8s_collection_rule) do
 
   newparam(:name, namevar: true) do
     desc 'The rule name.'
+  end
+
+  newparam(:release, boolean: true, parent: Puppet::Parameter::Boolean) do
+    desc <<-DESC
+      Release the fields this rule's patches own on every object in scope
+      (generated `k8s_patch` resources with `ensure => absent`). Declare the
+      rule this way when a control is switched off: removing it from the
+      catalog leaves its fields in place. Default false.
+    DESC
+    defaultto false
   end
 
   newparam(:api_version) do
@@ -161,7 +172,7 @@ Puppet::Type.newtype(:k8s_collection_rule) do
   end
 
   def declared_keys
-    catalog.resources.select { |r| r.is_a?(Puppet::Type.type(:k8s_resource)) }.to_h do |r|
+    catalog.resources.grep(Puppet::Type.type(:k8s_resource)).to_h do |r|
       [PuppetX::K8sCore::Object.key(r[:api_version], r[:kind], r[:namespace], r[:resource_name]), true]
     end
   end
@@ -196,6 +207,8 @@ Puppet::Type.newtype(:k8s_collection_rule) do
     common[:noop] = true if self[:noop]
 
     if self[:action] == :delete || (self[:action] == :report && !self[:patch])
+      return nil if self[:release]
+
       key = PuppetX::K8sCore::Object.key(self[:api_version], self[:kind], md['namespace'], md['name'])
       if declared[key]
         warning("#{ref} matches but is declared in this catalog; leaving it alone")
@@ -206,7 +219,7 @@ Puppet::Type.newtype(:k8s_collection_rule) do
       return Puppet::Type.type(:k8s_resource).new(opts)
     end
 
-    opts = common.merge(content: self[:patch], field_manager: self[:field_manager],
+    opts = common.merge(ensure: self[:release] ? :absent : :present, content: self[:patch], field_manager: self[:field_manager],
                         drift_managers: self[:drift_managers])
     opts[:noop] = true if self[:action] == :report
     Puppet::Type.type(:k8s_patch).new(opts)

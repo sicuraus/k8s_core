@@ -3,7 +3,7 @@
 require 'puppet/resource_api/transport/wrapper'
 
 # Glue so `puppet device` can use the `k8s` transport (device.conf `type k8s`).
-module Puppet::Util::NetworkDevice::K8s # rubocop:disable Style/ClassAndModuleChildren
+module Puppet::Util::NetworkDevice::K8s
   # The device wrapper for the k8s transport.
   class Device < Puppet::ResourceApi::Transport::Wrapper
     def initialize(url_or_config, _options = {})

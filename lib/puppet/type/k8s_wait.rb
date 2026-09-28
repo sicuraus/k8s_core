@@ -61,7 +61,7 @@ Puppet::Type.newtype(:k8s_wait) do
       is == :true
     end
 
-    def change_to_s(_from, _to)
+    def change_to_s(_old, _new)
       "#{resource[:condition]} not yet met on #{provider.object_ref}"
     end
   end

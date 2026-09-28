@@ -31,7 +31,7 @@ module PuppetX
       end
 
       def object_ref
-        "#{kind} #{namespace ? "#{namespace}/" : ''}#{object_name}"
+        "#{kind} #{"#{namespace}/" if namespace}#{object_name}"
       end
 
       def noop?

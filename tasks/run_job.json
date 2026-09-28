@@ -1,0 +1,17 @@
+{
+  "description": "Runs a Kubernetes Job to completion and returns its logs and status, then deletes it.",
+  "remote": true,
+  "input_method": "stdin",
+  "files": ["k8s_core/lib/puppet_x/k8s_core.rb", "k8s_core/lib/puppet_x/k8s_core/"],
+  "parameters": {
+    "namespace": { "type": "String[1]", "description": "Namespace to run the Job in." },
+    "image": { "type": "Optional[String[1]]", "description": "Container image. With from_cronjob, replaces every container's image." },
+    "command": { "type": "Optional[Array[String]]", "description": "Command (with arguments) for a Job built from image." },
+    "from_cronjob": { "type": "Optional[String[1]]", "description": "Create the Job from this CronJob's jobTemplate." },
+    "env": { "type": "Optional[Hash[String, String]]", "description": "Environment variables added to every container." },
+    "service_account": { "type": "Optional[String[1]]", "description": "ServiceAccount for a Job built from image." },
+    "name": { "type": "Optional[String[1]]", "description": "Job name prefix. Default: the CronJob name, or bolt-job." },
+    "timeout": { "type": "Integer[1]", "default": 600, "description": "Seconds to wait for completion." },
+    "keep": { "type": "Boolean", "default": false, "description": "Keep the Job afterwards instead of deleting it." }
+  }
+}

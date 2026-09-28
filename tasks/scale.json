@@ -1,0 +1,14 @@
+{
+  "description": "Scales a workload. Refuses when another manager (such as the reconciler) owns spec.replicas, unless forced.",
+  "remote": true,
+  "input_method": "stdin",
+  "files": ["k8s_core/lib/puppet_x/k8s_core.rb", "k8s_core/lib/puppet_x/k8s_core/"],
+  "parameters": {
+    "namespace": { "type": "String[1]", "description": "Namespace of the workload." },
+    "workload": { "type": "Pattern[/^(?i:deployment|statefulset)\\/.+$/]", "description": "deployment/NAME or statefulset/NAME." },
+    "replicas": { "type": "Integer[0]", "description": "Desired replicas." },
+    "force": { "type": "Boolean", "default": false, "description": "Scale even if another field manager owns spec.replicas; the owner will revert it on its next run." },
+    "wait": { "type": "Boolean", "default": true, "description": "Wait until the workload is ready." },
+    "timeout": { "type": "Integer[1]", "default": 600, "description": "Seconds to wait." }
+  }
+}

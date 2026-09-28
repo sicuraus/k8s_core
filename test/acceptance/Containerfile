@@ -1,0 +1,11 @@
+# A test runner: the openvoxagent image with this module vendored the way
+# openvox-agent packages its *_core modules (the tree minus dotfiles).
+ARG BASE_IMAGE=docker.io/voxpupuli/openvoxagent:latest
+FROM ${BASE_IMAGE}
+COPY . /opt/puppetlabs/puppet/vendor_modules/k8s_core/
+RUN rm -rf /opt/puppetlabs/puppet/vendor_modules/k8s_core/.[!.]* \
+ && mkdir -p /opt/k8s_core-tests \
+ && cp -r /opt/puppetlabs/puppet/vendor_modules/k8s_core/test/acceptance/manifests/. /opt/k8s_core-tests/ \
+ && /opt/puppetlabs/bin/puppet module list --modulepath /opt/puppetlabs/puppet/vendor_modules
+ENTRYPOINT []
+CMD ["sleep", "infinity"]

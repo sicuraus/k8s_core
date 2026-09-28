@@ -1,0 +1,9 @@
+{
+  "description": "Marks a node schedulable again.",
+  "remote": true,
+  "input_method": "stdin",
+  "files": ["k8s_core/lib/puppet_x/k8s_core.rb", "k8s_core/lib/puppet_x/k8s_core/"],
+  "parameters": {
+    "node": { "type": "String[1]", "description": "Node name." }
+  }
+}

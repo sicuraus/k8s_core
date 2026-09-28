@@ -1,0 +1,10 @@
+{
+  "description": "Waits for a node to report Ready.",
+  "remote": true,
+  "input_method": "stdin",
+  "files": ["k8s_core/lib/puppet_x/k8s_core.rb", "k8s_core/lib/puppet_x/k8s_core/"],
+  "parameters": {
+    "node": { "type": "String[1]", "description": "Node name." },
+    "timeout": { "type": "Integer[1]", "default": 900, "description": "Seconds to wait." }
+  }
+}

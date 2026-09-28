@@ -26,9 +26,7 @@ Puppet::Functions.create_function(:'k8s_core::helm_template') do
   end
 
   def helm_template(chart, values = {}, options = {})
-    if chart.match?(%r{\A[a-z][a-z0-9+.-]*://}i) || !File.exist?(chart)
-      raise Puppet::ParseError, "k8s_core::helm_template: #{chart} is not a local chart; vendor charts into the control repo"
-    end
+    raise Puppet::ParseError, "k8s_core::helm_template: #{chart} is not a local chart; vendor charts into the control repo" if chart.match?(%r{\A[a-z][a-z0-9+.-]*://}i) || !File.exist?(chart)
 
     Tempfile.create(['values', '.yaml']) do |f|
       f.write(YAML.dump(values))

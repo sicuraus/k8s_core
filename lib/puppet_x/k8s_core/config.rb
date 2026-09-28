@@ -28,7 +28,7 @@ module PuppetX
                elsif in_cluster?
                  in_cluster
                else
-                 from_kubeconfig(nil, ENV['K8S_CORE_CONTEXT'])
+                 from_kubeconfig(nil, ENV.fetch('K8S_CORE_CONTEXT', nil))
                end
         opts[:timeout] = s['timeout'].to_i if s['timeout']
         opts
@@ -53,7 +53,7 @@ module PuppetX
       end
 
       def in_cluster
-        host = ENV['KUBERNETES_SERVICE_HOST']
+        host = ENV.fetch('KUBERNETES_SERVICE_HOST', nil)
         host = "[#{host}]" if host.include?(':')
         {
           server: "https://#{host}:#{ENV['KUBERNETES_SERVICE_PORT'] || 443}",

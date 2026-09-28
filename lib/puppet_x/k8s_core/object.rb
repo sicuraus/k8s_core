@@ -74,7 +74,7 @@ module PuppetX
         case o
         when Hash then o.each_with_object({}) { |(k, v), h| h[k.to_s] = plain(v) }
         when Array then o.map { |v| plain(v) }
-        when Symbol then o == :undef ? nil : o.to_s
+        when Symbol then (o == :undef) ? nil : o.to_s
         else o.respond_to?(:unwrap) ? plain(o.unwrap) : o
         end
       end
@@ -110,7 +110,7 @@ module PuppetX
             h[k] = project(live[k], desired[k]) if live.key?(k)
           end
         elsif desired.is_a?(Array) && live.is_a?(Array)
-          live.each_with_index.map { |v, i| i < desired.size ? project(v, desired[i]) : v }
+          live.each_with_index.map { |v, i| (i < desired.size) ? project(v, desired[i]) : v }
         else
           live
         end
@@ -154,7 +154,7 @@ module PuppetX
 
       def fmt(v)
         s = v.is_a?(String) ? v.inspect : JSON.generate(v)
-        s.size > 120 ? "#{s[0, 117]}..." : s
+        (s.size > 120) ? "#{s[0, 117]}..." : s
       end
 
       # ---- readiness ------------------------------------------------------
@@ -193,6 +193,7 @@ module PuppetX
           want = spec.fetch('replicas', 1)
           return [false, 'rollout not observed yet'] unless observed_current?(obj)
           return [false, "#{st['readyReplicas'].to_i}/#{want} replicas ready"] if st['readyReplicas'].to_i < want
+
           if spec.dig('updateStrategy', 'type') != 'OnDelete'
             return [false, "#{st['updatedReplicas'].to_i}/#{want} replicas updated"] if st['updatedReplicas'].to_i < want
             return [false, 'revision update in progress'] if st['updateRevision'] && st['currentRevision'] != st['updateRevision']
@@ -218,9 +219,9 @@ module PuppetX
 
           condition_true?(obj, 'Ready') ? [true, 'ready'] : [false, "phase #{st['phase'] || 'unknown'}"]
         when 'PersistentVolumeClaim'
-          st['phase'] == 'Bound' ? [true, 'bound'] : [false, "phase #{st['phase'] || 'unknown'}"]
+          (st['phase'] == 'Bound') ? [true, 'bound'] : [false, "phase #{st['phase'] || 'unknown'}"]
         when 'Namespace'
-          st['phase'] == 'Active' ? [true, 'active'] : [false, "phase #{st['phase'] || 'unknown'}"]
+          (st['phase'] == 'Active') ? [true, 'active'] : [false, "phase #{st['phase'] || 'unknown'}"]
         else
           return [false, 'status not observed yet'] unless observed_current?(obj)
           return [true, 'no Ready condition'] unless condition(obj, 'Ready')
@@ -246,9 +247,9 @@ module PuppetX
             elsif idx
               next [] unless c.is_a?(Array)
 
-              idx == '*' ? c : [c[idx.to_i]].compact
+              (idx == '*') ? c : [c[idx.to_i]].compact
             else
-              c.is_a?(Hash) && c.key?(name) ? [c[name]] : []
+              (c.is_a?(Hash) && c.key?(name)) ? [c[name]] : []
             end
           end
         end

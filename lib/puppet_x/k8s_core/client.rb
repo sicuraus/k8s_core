@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'English'
 require 'json'
 require 'net/http'
 require 'openssl'
@@ -25,7 +26,7 @@ module PuppetX
         rescue JSON::ParserError
           nil
         end
-        detail = @status.is_a?(Hash) && @status['message'] ? @status['message'] : body.to_s[0, 500]
+        detail = (@status.is_a?(Hash) && @status['message']) ? @status['message'] : body.to_s[0, 500]
         super("#{verb} #{path}: HTTP #{code}: #{detail}")
       end
 
@@ -84,7 +85,7 @@ module PuppetX
 
       # ---- HTTP -----------------------------------------------------------
 
-      def request(verb, path, body: nil, query: {}, content_type: 'application/json', accept: 'application/json')
+      def request(verb, path, body: nil, query: {}, content_type: 'application/json', accept: 'application/json', raw: false)
         full = path.dup
         q = query.compact.reject { |_k, v| v == '' }
         full << "?#{URI.encode_www_form(q)}" unless q.empty?
@@ -100,7 +101,9 @@ module PuppetX
           end
           raise ApiError.new(code, res.body, verb.to_s.upcase, path) unless code.between?(200, 299)
 
-          res.body.nil? || res.body.empty? ? {} : JSON.parse(res.body)
+          return res.body.to_s if raw
+
+          (res.body.nil? || res.body.empty?) ? {} : JSON.parse(res.body)
         rescue RetryRequest
           retry
         rescue EOFError, Errno::ECONNRESET, Errno::EPIPE, Net::OpenTimeout, Net::ReadTimeout, OpenSSL::SSL::SSLError => e
@@ -146,9 +149,7 @@ module PuppetX
         return info if info
 
         # A CRD applied earlier in this run is not in the cache yet.
-        if @discovery_fetched_at.nil? || Time.now - @discovery_fetched_at > 1
-          info = discovery(refresh: true)[key]
-        end
+        info = discovery(refresh: true)[key] if @discovery_fetched_at.nil? || Time.now - @discovery_fetched_at > 1
         info
       end
 
@@ -198,7 +199,7 @@ module PuppetX
                 body: object,
                 content_type: 'application/apply-patch+yaml',
                 query: { 'fieldManager' => field_manager, 'force' => force ? 'true' : nil,
-                         'dryRun' => dry_run ? 'All' : nil, 'fieldValidation' => 'Strict' })
+                         'dryRun' => dry_run ? 'All' : nil, 'fieldValidation' => 'Strict', })
       end
 
       def delete_object(api_version, kind, namespace, name, propagation: 'Foreground')
@@ -222,7 +223,7 @@ module PuppetX
         token = nil
         loop do
           page = get(path, query: { 'labelSelector' => label_selector, 'fieldSelector' => field_selector,
-                                    'limit' => 500, 'continue' => token })
+                                    'limit' => 500, 'continue' => token, })
           (page['items'] || []).each do |item|
             item['apiVersion'] ||= api_version
             item['kind'] ||= kind
@@ -279,18 +280,16 @@ module PuppetX
 
       # Runs a kubeconfig exec credential plugin (EKS, GKE, AKS, OIDC helpers).
       def exec_credential
-        if @exec_cred && (@exec_cred_expires.nil? || Time.now < @exec_cred_expires - 30)
-          return @exec_cred
-        end
+        return @exec_cred if @exec_cred && (@exec_cred_expires.nil? || Time.now < @exec_cred_expires - 30)
 
         env = (@exec['env'] || []).to_h { |e| [e['name'], e['value']] }
         env['KUBERNETES_EXEC_INFO'] = JSON.generate(
           'apiVersion' => @exec['apiVersion'] || 'client.authentication.k8s.io/v1',
-          'kind' => 'ExecCredential', 'spec' => { 'interactive' => false },
+          'kind' => 'ExecCredential', 'spec' => { 'interactive' => false }
         )
         cmd = [@exec['command'], *(@exec['args'] || [])]
         out = IO.popen(env, cmd, err: File::NULL, &:read)
-        raise Error, "kubeconfig exec plugin #{@exec['command']} failed" unless $?.success?
+        raise Error, "kubeconfig exec plugin #{@exec['command']} failed" unless $CHILD_STATUS.success?
 
         status = JSON.parse(out)['status'] || {}
         @exec_cred = status
@@ -356,7 +355,7 @@ module PuppetX
                 next if kind.nil? || kind.empty?
 
                 map["#{gv}/#{kind}"] ||= { 'plural' => r['resource'], 'namespaced' => r['scope'] == 'Namespaced',
-                                           'verbs' => r['verbs'] || [] }
+                                           'verbs' => r['verbs'] || [], }
               end
             end
           end
@@ -368,7 +367,7 @@ module PuppetX
 
       def legacy_discovery
         map = {}
-        gvs = (get('/api')['versions'] || [])
+        gvs = get('/api')['versions'] || []
         (get('/apis')['groups'] || []).each do |g|
           (g['versions'] || []).each { |v| gvs << v['groupVersion'] }
         end
@@ -379,7 +378,7 @@ module PuppetX
               next if r['name'].include?('/')
 
               map["#{gv}/#{r['kind']}"] ||= { 'plural' => r['name'], 'namespaced' => r['namespaced'],
-                                              'verbs' => r['verbs'] || [] }
+                                              'verbs' => r['verbs'] || [], }
             end
           rescue ApiError
             next

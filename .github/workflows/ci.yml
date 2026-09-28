@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Unit and lint (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.2', '3.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: bundle exec rake syntax lint metadata_lint
+      - run: bundle exec rubocop
+      - run: bundle exec rake spec
+
+  acceptance:
+    name: KinD acceptance (${{ matrix.base_image }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        base_image:
+          - docker.io/voxpupuli/openvoxagent:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kind
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -fsSLo "$HOME/bin/kind" https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64
+          chmod +x "$HOME/bin/kind"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Run the acceptance suite
+        env:
+          CONTAINER_ENGINE: docker
+          BASE_IMAGE: ${{ matrix.base_image }}
+        run: test/acceptance/run.sh

@@ -1,0 +1,12 @@
+{
+  "description": "Restarts a Deployment, StatefulSet or DaemonSet and waits for the rollout.",
+  "remote": true,
+  "input_method": "stdin",
+  "files": ["k8s_core/lib/puppet_x/k8s_core.rb", "k8s_core/lib/puppet_x/k8s_core/"],
+  "parameters": {
+    "namespace": { "type": "String[1]", "description": "Namespace of the workload." },
+    "workload": { "type": "Pattern[/^(?i:deployment|statefulset|daemonset)\\/.+$/]", "description": "deployment/NAME, statefulset/NAME or daemonset/NAME." },
+    "wait": { "type": "Boolean", "default": true, "description": "Wait for the rollout to finish." },
+    "timeout": { "type": "Integer[1]", "default": 600, "description": "Seconds to wait." }
+  }
+}

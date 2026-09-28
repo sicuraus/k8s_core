@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'puppet/parameter/boolean'
 require_relative '../../puppet_x/k8s_core/object'
 
 Puppet::Type.newtype(:k8s_resource) do
@@ -81,6 +82,7 @@ Puppet::Type.newtype(:k8s_resource) do
 
     validate do |value|
       raise ArgumentError, 'content must be a Hash' unless value.is_a?(Hash)
+
       %w[apiVersion kind].each do |k|
         raise ArgumentError, "content must not set #{k}; use the api_version parameter and the title" if value.key?(k)
       end
@@ -92,11 +94,11 @@ Puppet::Type.newtype(:k8s_resource) do
       provider.content_insync?
     end
 
-    def change_to_s(_from, _to)
+    def change_to_s(_old, _new)
       provider.change_summary
     end
 
-    def is_to_s(value) # rubocop:disable Naming/PredicateName
+    def is_to_s(value)
       value.is_a?(Hash) ? PuppetX::K8sCore::Object.fmt(value) : value.to_s
     end
 
@@ -144,9 +146,7 @@ Puppet::Type.newtype(:k8s_resource) do
     DESC
     defaultto { PuppetX::K8sCore.default_managed_by }
     validate do |value|
-      unless value.to_s.match?(PuppetX::K8sCore::LABEL_VALUE) && !value.to_s.empty?
-        raise ArgumentError, "managed_by #{value.inspect} is not a valid label value"
-      end
+      raise ArgumentError, "managed_by #{value.inspect} is not a valid label value" unless value.to_s.match?(PuppetX::K8sCore::LABEL_VALUE) && !value.to_s.empty?
     end
   end
 
@@ -169,13 +169,11 @@ Puppet::Type.newtype(:k8s_resource) do
   def initialize(*args)
     super
     kind, ns, name = PuppetX::K8sCore::Object.parse_title(self[:name])
-    self[:kind] ||= kind
-    self[:resource_name] ||= name
+    self[:kind] ||= kind if kind
+    self[:resource_name] ||= name if name
     self[:namespace] ||= ns unless ns.to_s.empty?
     delete(:namespace) if parameters.include?(:namespace) && self[:namespace].to_s.empty?
-    unless self[:kind] && self[:resource_name]
-      raise Puppet::ResourceError, "#{ref}: title must be Kind/name or Kind/namespace/name, or set kind and resource_name"
-    end
+    raise Puppet::ResourceError, "#{ref}: title must be Kind/name or Kind/namespace/name, or set kind and resource_name" unless self[:kind] && self[:resource_name]
     raise Puppet::ResourceError, "#{ref}: api_version is required" unless self[:api_version]
 
     # Canonical name, so one object declared under two titles is a duplicate.
@@ -185,14 +183,14 @@ Puppet::Type.newtype(:k8s_resource) do
 
   # sensitive_data is a parameter; its values never reach reports or diffs
   # (see the provider), so Puppet's warning about redacting it is noise.
-  def set_sensitive_parameters(sensitive_parameters)
+  def set_sensitive_parameters(sensitive_parameters) # rubocop:disable Naming/AccessorMethodName
     super(sensitive_parameters - [:sensitive_data])
   end
 
   def self.k8s_resources(catalog)
     return [] unless catalog
 
-    catalog.resources.select { |r| r.is_a?(Puppet::Type.type(:k8s_resource)) }
+    catalog.resources.grep(Puppet::Type.type(:k8s_resource))
   end
 
   # Namespaced objects require their Namespace (or, when both are being

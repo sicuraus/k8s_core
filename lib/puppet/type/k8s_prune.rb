@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'puppet/parameter/boolean'
 require_relative '../../puppet_x/k8s_core/object'
 
 Puppet::Type.newtype(:k8s_prune) do
@@ -38,9 +39,7 @@ Puppet::Type.newtype(:k8s_prune) do
   newparam(:name, namevar: true) do
     desc 'The scope: the `managed_by` value of the resources it covers.'
     validate do |value|
-      unless value.to_s.match?(PuppetX::K8sCore::LABEL_VALUE) && !value.to_s.empty?
-        raise ArgumentError, "#{value.inspect} is not a valid label value"
-      end
+      raise ArgumentError, "#{value.inspect} is not a valid label value" unless value.to_s.match?(PuppetX::K8sCore::LABEL_VALUE) && !value.to_s.empty?
     end
   end
 
@@ -68,7 +67,7 @@ Puppet::Type.newtype(:k8s_prune) do
 
   newparam(:protected_kinds, array_matching: :all) do
     desc 'Kinds never pruned.'
-    defaultto ['Namespace', 'PersistentVolumeClaim', 'CustomResourceDefinition', 'CertificateAuthority']
+    defaultto %w[Namespace PersistentVolumeClaim CustomResourceDefinition CertificateAuthority]
   end
 
   newproperty(:inventory) do
@@ -80,7 +79,7 @@ Puppet::Type.newtype(:k8s_prune) do
       is == :current
     end
 
-    def change_to_s(_from, _to)
+    def change_to_s(_old, _new)
       provider.change_summary
     end
   end

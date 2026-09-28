@@ -1,0 +1,12 @@
+{
+  "description": "Cordons a node and evicts its pods, respecting PodDisruptionBudgets.",
+  "remote": true,
+  "input_method": "stdin",
+  "files": ["k8s_core/lib/puppet_x/k8s_core.rb", "k8s_core/lib/puppet_x/k8s_core/"],
+  "parameters": {
+    "node": { "type": "String[1]", "description": "Node name." },
+    "timeout": { "type": "Integer[1]", "default": 600, "description": "Seconds to wait for evictions (PDBs may delay them)." },
+    "ignore_daemonsets": { "type": "Boolean", "default": true, "description": "Leave DaemonSet pods in place (they would be recreated)." },
+    "delete_emptydir_data": { "type": "Boolean", "default": false, "description": "Evict pods using emptyDir volumes, losing that data." }
+  }
+}

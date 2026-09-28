@@ -12,13 +12,11 @@ module PuppetX
       # reference unless given explicitly. Returns the canonical reference.
       def resolve_reference(res, ref)
         kind, ns, name = Object.parse_title(ref)
-        res[:kind] ||= kind
-        res[:resource_name] ||= name
+        res[:kind] ||= kind if kind
+        res[:resource_name] ||= name if name
         res[:namespace] ||= ns unless ns.to_s.empty?
         res.delete(:namespace) if res.parameters.include?(:namespace) && res[:namespace].to_s.empty?
-        unless res[:kind] && res[:resource_name]
-          raise Puppet::ResourceError, "#{res.ref}: title must be Kind/name or Kind/namespace/name, or set kind and resource_name"
-        end
+        raise Puppet::ResourceError, "#{res.ref}: title must be Kind/name or Kind/namespace/name, or set kind and resource_name" unless res[:kind] && res[:resource_name]
         raise Puppet::ResourceError, "#{res.ref}: api_version is required" unless res[:api_version]
 
         Object.format_title(res[:kind], res[:namespace], res[:resource_name])

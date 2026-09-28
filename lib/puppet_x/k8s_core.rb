@@ -16,9 +16,7 @@ module PuppetX
     # resolved from the environment; see Config.resolve.
     def self.client
       dev = defined?(Puppet::Util::NetworkDevice) ? Puppet::Util::NetworkDevice.current : nil
-      if dev.respond_to?(:transport) && dev.transport.respond_to?(:k8s_client)
-        return dev.transport.k8s_client
-      end
+      return dev.transport.k8s_client if dev.respond_to?(:transport) && dev.transport.respond_to?(:k8s_client)
 
       @client ||= Config.client
     end

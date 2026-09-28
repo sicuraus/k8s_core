@@ -9,7 +9,7 @@ module Puppet::Transport
     attr_reader :k8s_client
 
     def initialize(_context, connection_info)
-      settings = connection_info.transform_keys(&:to_s).reject { |_, v| v.nil? }
+      settings = connection_info.transform_keys(&:to_s).compact
       @k8s_client = PuppetX::K8sCore::Config.client(settings)
     end
 

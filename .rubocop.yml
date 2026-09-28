@@ -5,3 +5,5 @@ AllCops:
   Exclude:
     - vendor/**/*
     - spec/fixtures/**/*
+Naming/MethodParameterName:
+  AllowedNames: [a, b, e, k, o, s, v, is, ns, gv, mf, cs]

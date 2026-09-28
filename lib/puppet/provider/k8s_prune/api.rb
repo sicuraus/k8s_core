@@ -33,11 +33,14 @@ Puppet::Type.type(:k8s_prune).provide(:api) do
 
   # Objects this catalog declares for the scope.
   def current
-    @current ||= resource.catalog.resources.select do |r|
-      r.is_a?(Puppet::Type.type(:k8s_resource)) && r[:managed_by] == scope && r[:ensure] != :absent
-    end.map do |r|
-      { 'apiVersion' => r[:api_version], 'kind' => r[:kind], 'namespace' => r[:namespace],
-        'name' => r[:resource_name], 'title' => r.title }.compact
+    @current ||= begin
+      declared = resource.catalog.resources.select do |r|
+        r.is_a?(Puppet::Type.type(:k8s_resource)) && r[:managed_by] == scope && r[:ensure] != :absent
+      end
+      declared.map do |r|
+        { 'apiVersion' => r[:api_version], 'kind' => r[:kind], 'namespace' => r[:namespace],
+          'name' => r[:resource_name], 'title' => r.title, }.compact
+      end
     end
   end
 
@@ -101,11 +104,11 @@ Puppet::Type.type(:k8s_prune).provide(:api) do
     when :dryrun then record.concat(keep).concat(delete)
     end
     record = record.uniq { |e| entry_key(e) }.sort_by { |e| entry_key(e) }
-    would_delete = mode == :dryrun ? delete : []
+    would_delete = (mode == :dryrun) ? delete : []
     delete = [] unless mode == :true
 
     @plan = { delete: delete.sort_by { |e| [rank(e), entry_key(e)] }, record: record, notes: notes,
-              would_delete: would_delete }
+              would_delete: would_delete, }
   end
 
   def inventory
@@ -113,7 +116,7 @@ Puppet::Type.type(:k8s_prune).provide(:api) do
     p[:notes].each { |n| resource.notice(n) }
     p[:would_delete].each { |e| resource.warning("would prune #{entry_ref(e)} (dryrun)") }
     recorded = previous.sort_by { |e| entry_key(e) }
-    p[:delete].empty? && recorded == p[:record] ? :current : :stale
+    (p[:delete].empty? && recorded == p[:record]) ? :current : :stale
   end
 
   def inventory=(_value)
@@ -144,8 +147,8 @@ Puppet::Type.type(:k8s_prune).provide(:api) do
     body = {
       'apiVersion' => 'v1', 'kind' => 'ConfigMap',
       'metadata' => { 'name' => cm_name, 'namespace' => resource[:inventory_namespace],
-                      'labels' => { PuppetX::K8sCore::INVENTORY_LABEL => scope } },
-      'data' => { PuppetX::K8sCore::INVENTORY_KEY => JSON.pretty_generate(entries) }
+                      'labels' => { PuppetX::K8sCore::INVENTORY_LABEL => scope }, },
+      'data' => { PuppetX::K8sCore::INVENTORY_KEY => JSON.pretty_generate(entries) },
     }
     client.apply(body, field_manager: 'openvox-inventory', force: true)
   end

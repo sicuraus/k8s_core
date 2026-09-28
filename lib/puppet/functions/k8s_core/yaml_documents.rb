@@ -20,7 +20,7 @@ Puppet::Functions.create_function(:'k8s_core::yaml_documents') do
     docs.compact.flat_map do |doc|
       raise Puppet::ParseError, "k8s_core::yaml_documents: expected a mapping, got #{doc.class}" unless doc.is_a?(Hash)
 
-      doc['kind'].to_s.end_with?('List') && doc['items'].is_a?(Array) ? doc['items'] : [doc]
+      (doc['kind'].to_s.end_with?('List') && doc['items'].is_a?(Array)) ? doc['items'] : [doc]
     end
   rescue Psych::Exception => e
     raise Puppet::ParseError, "k8s_core::yaml_documents: #{e.message}"

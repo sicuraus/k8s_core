@@ -54,6 +54,7 @@ Puppet::Type.newtype(:k8s_patch) do
 
     validate do |value|
       raise ArgumentError, 'content must be a Hash' unless value.is_a?(Hash)
+
       %w[apiVersion kind].each do |k|
         raise ArgumentError, "content must not set #{k}" if value.key?(k)
       end
@@ -65,11 +66,11 @@ Puppet::Type.newtype(:k8s_patch) do
       provider.content_insync?
     end
 
-    def change_to_s(_from, _to)
+    def change_to_s(_old, _new)
       provider.change_summary
     end
 
-    def is_to_s(value) # rubocop:disable Naming/PredicateName
+    def is_to_s(value)
       value.is_a?(Hash) ? PuppetX::K8sCore::Object.fmt(value) : value.to_s
     end
 
